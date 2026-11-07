@@ -1,0 +1,42 @@
+{
+  "fecha_utc": "2026-11-06T14:00:50.759Z",
+  "origen": "https://esitwebaqfxjebkwelap.supabase.co",
+  "categorias": [
+    {
+      "id": "bf60319a-3385-41d9-8ed6-9851e3f75934",
+      "nombre": "Audiovisual y creación",
+      "descripcion": "Cámaras, audio, iluminación y herramientas para crear contenido.",
+      "imagen": null,
+      "estado": "activa"
+    },
+    {
+      "id": "7fd5ef5c-2690-48ee-a5db-eb15c3333b8e",
+      "nombre": "Cocina y hogar",
+      "descripcion": "Pequeños electrodomésticos para cocinar y disfrutar en casa.",
+      "imagen": null,
+      "estado": "activa"
+    },
+    {
+      "id": "c8c3a9ba-d817-4480-870e-7f8c8bb8ee34",
+      "nombre": "Limpieza y cuidado personal",
+      "descripcion": "Productos para limpieza del hogar y cuidado personal.",
+      "imagen": null,
+      "estado": "activa"
+    },
+    {
+      "id": "02ac0dc9-1c99-499f-8b1f-f1793ae6d689",
+      "nombre": "Ocio y realidad virtual",
+      "descripcion": "Tecnología de ocio, entretenimiento y experiencias inmersivas.",
+      "imagen": null,
+      "estado": "activa"
+    },
+    {
+      "id": "7137b354-f288-472f-81bd-08217f265282",
+      "nombre": "Salud y climatización",
+      "descripcion": "Bienestar, purificación de aire y climatización estacional.",
+      "imagen": null,
+      "estado": "activa"
+    }
+  ],
+  "productos": []
+}

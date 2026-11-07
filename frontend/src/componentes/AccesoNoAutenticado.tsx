@@ -1,0 +1,5 @@
+import { ArrowLeft, LockKeyhole } from 'lucide-react';
+
+export function AccesoNoAutenticado({ irIniciarSesion, volver }: { irIniciarSesion: () => void; volver: () => void }) {
+  return <main className="grid min-h-[calc(100vh-76px)] place-items-center bg-neblina px-5 py-16"><div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-suave"><span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-blue-50 text-electrico"><LockKeyhole size={29} /></span><h1 className="mt-6 text-2xl font-black text-tinta">Inicia sesión para continuar</h1><p className="mt-3 text-sm leading-6 text-slate-500">Esta sección es privada. Necesitas una cuenta Rentaeasy para acceder.</p><button onClick={irIniciarSesion} className="mt-7 w-full rounded-xl bg-electrico px-4 py-3.5 text-sm font-bold text-white hover:bg-violeta">Iniciar sesión</button><button onClick={volver} className="mt-5 flex w-full items-center justify-center gap-2 text-sm font-bold text-slate-500 hover:text-electrico"><ArrowLeft size={16} /> Volver a la tienda</button></div></main>;
+}

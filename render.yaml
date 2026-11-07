@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: rentaeasy-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npm run construir
+    startCommand: npm run inicio
+    envVars:
+      - key: PUERTO
+        value: 10000
+      - key: ORIGEN_FRONTEND
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_CLAVE_SERVICIO
+        sync: false
