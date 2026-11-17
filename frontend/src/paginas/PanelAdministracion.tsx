@@ -1,3 +1,5 @@
+import { BandejaContacto } from '../componentes/BandejaContacto';
+import { SIGUIENTES_ESTADOS } from '../utilidades/estadosReserva';
 import {
   AlertCircle,
   BarChart3,
@@ -42,7 +44,8 @@ export type SeccionAdministracionNombre =
   | 'Inventario'
   | 'Mantenimiento'
   | 'Reportes'
-  | 'Configuración';
+  | 'Configuración'
+  | 'Consultas';
 
 interface PropiedadesPanelAdministracion {
   salir: () => void;
@@ -66,6 +69,7 @@ const MENU: { nombre: SeccionAdministracionNombre; icono: LucideIcon }[] = [
   { nombre: 'Inventario', icono: PackageSearch },
   { nombre: 'Mantenimiento', icono: Wrench },
   { nombre: 'Reportes', icono: BarChart3 },
+  { nombre: 'Consultas', icono: Inbox },
 ];
 
 const CLASES_ESTADO_RESERVA: Record<EstadoReserva, string> = {
@@ -111,15 +115,6 @@ const ESTADOS_CON_INGRESOS: EstadoReserva[] = [
   'En alquiler',
   'Finalizada',
 ];
-
-const SIGUIENTES_ESTADOS: Record<EstadoReserva, EstadoReserva[]> = {
-  Pendiente: ['Confirmada', 'Cancelada'],
-  Confirmada: ['En preparación', 'Cancelada'],
-  'En preparación': ['En alquiler', 'Cancelada'],
-  'En alquiler': ['Finalizada'],
-  Finalizada: [],
-  Cancelada: [],
-};
 
 const FILTROS_ESTADO: { valor: 'todas' | EstadoReserva; etiqueta: string }[] = [
   { valor: 'todas', etiqueta: 'Todas' },
@@ -300,7 +295,7 @@ export function PanelAdministracion({
     setAviso('');
     setErrorAccion('');
     try {
-      await servicioAdministracion.actualizarEstadoReserva(reserva.id, estado);
+      await servicioAdministracion.actualizarEstadoReserva(reserva.id, estado, reserva.estado);
       setAviso(`Reserva ${reserva.codigo} actualizada a “${estado}”.`);
       await cargar(true);
     } catch (problema) {
@@ -333,6 +328,8 @@ export function PanelAdministracion({
     if (!datos) return null;
 
     switch (seccion) {
+      case 'Consultas':
+        return <BandejaContacto />;
       case 'Resumen':
         return (
           <ResumenAdministracion
@@ -444,9 +441,7 @@ export function PanelAdministracion({
                 <RefreshCw size={15} className={recargando ? 'animate-spin' : ''} />
                 <span className="hidden sm:inline">Actualizar</span>
               </button>
-              <button className="hidden rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-tinta sm:block">
-                Tetuán, Madrid <ChevronDown size={14} className="ml-2 inline" />
-              </button>
+              <a href="/empleados" className="hidden rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-tinta sm:block">Abrir operaciones</a>
               <span className="hidden text-sm font-bold text-tinta md:block">
                 {usuario ? `${usuario.nombre} ${usuario.apellidos}` : 'Administrador'}
               </span>

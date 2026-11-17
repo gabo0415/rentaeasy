@@ -113,21 +113,10 @@ export const servicioReservas = {
    * envía el producto, las fechas y la modalidad.
    */
   crear: async (datos: DatosCrearReserva): Promise<ReservaCreada> => {
-    const { data: productoDb, error: errorProducto } = await supabase
-      .from('productos')
-      .select('id')
-      .eq('nombre', datos.producto.nombre)
-      .eq('estado', 'activo')
-      .limit(1)
-      .maybeSingle();
-
-    if (errorProducto) throw new Error(traducirError(errorProducto));
-    if (!productoDb?.id) {
-      throw new Error('El producto no está disponible en el catálogo de reservas.');
-    }
+    if (!datos.producto.idBaseDatos) throw new Error('Actualiza el catálogo antes de reservar.');
 
     const { data, error } = await supabase.rpc('crear_reserva', {
-      p_items: [{ producto: productoDb.id, cantidad: 1 }],
+      p_items: [{ producto: datos.producto.idBaseDatos, cantidad: 1 }],
       p_fecha_inicio: datos.inicio,
       p_fecha_devolucion: datos.fin,
       p_modalidad_alquiler: MODALIDAD_A_DB[datos.modalidad],

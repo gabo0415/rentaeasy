@@ -1,21 +1,28 @@
 import { Router } from 'express';
-import { requiereRol } from '../middleware/autenticacion.js';
-
-const pedidosDemostracion = [
-  { id: 'pedido-1048', numero: 'RE-1048', estado: 'En alquiler', importe: 59 },
-  { id: 'pedido-1047', numero: 'RE-1047', estado: 'Pendiente', importe: 45 },
-  { id: 'pedido-1046', numero: 'RE-1046', estado: 'Confirmada', importe: 49 },
-];
-
+import { z } from 'zod';
+import { requiereSesionSupabase, requiereEquipoSupabase } from '../middleware/autenticacionSupabase.js';
+import { consultarDatos } from '../servicios/datosSupabase.js';
 export const rutasEmpleados = Router();
-rutasEmpleados.use(requiereRol('empleado', 'administrador'));
-rutasEmpleados.get('/pedidos', (_solicitud, respuesta) => respuesta.json({ datos: pedidosDemostracion }));
-rutasEmpleados.patch('/pedidos/:id/estado', (solicitud, respuesta) => {
-  const pedido = pedidosDemostracion.find((elemento) => elemento.id === solicitud.params.id);
-  if (!pedido) return respuesta.status(404).json({ error: 'Pedido no encontrado.' });
-  const estado = typeof solicitud.body?.estado === 'string' ? solicitud.body.estado : '';
-  if (!['Pendiente', 'Confirmada', 'En preparación', 'En alquiler', 'Finalizada', 'Cancelada'].includes(estado)) return respuesta.status(400).json({ error: 'Estado de pedido no válido.' });
-  pedido.estado = estado;
-  return respuesta.json({ datos: pedido });
+rutasEmpleados.use(requiereSesionSupabase, requiereEquipoSupabase);
+rutasEmpleados.get('/pedidos', async (solicitud, respuesta) => {
+  try {
+    const resultado = await consultarDatos('reservas?select=*,detalles_reserva(*)&order=fecha_solicitud.desc', solicitud.tokenSupabase);
+    return respuesta.status(resultado.estado).json({ datos: resultado.datos });
+  } catch { return respuesta.status(503).json({ error: 'No se pudieron cargar las reservas.' }); }
 });
-rutasEmpleados.get('/inventario', (_solicitud, respuesta) => respuesta.json({ datos: [], mensaje: 'Inventario preparado para conectarse a Supabase.' }));
+rutasEmpleados.patch('/pedidos/:id/estado', async (solicitud, respuesta) => {
+  const id = z.string().uuid().safeParse(solicitud.params.id);
+  const cuerpo = z.object({ estado: z.enum(['pendiente','confirmada','en_preparacion','en_alquiler','finalizada','cancelada']) }).safeParse(solicitud.body);
+  if (!id.success || !cuerpo.success) return respuesta.status(400).json({ error: 'Identificador o estado no válido.' });
+  try {
+    const resultado = await consultarDatos(`reservas?id=eq.${id.data}&select=id,estado`, solicitud.tokenSupabase, 'PATCH', cuerpo.data);
+    if (Array.isArray(resultado.datos) && resultado.datos.length === 0) return respuesta.status(404).json({ error: 'Reserva no encontrada.' });
+    return respuesta.status(resultado.estado).json({ datos: resultado.datos });
+  } catch { return respuesta.status(503).json({ error: 'No se pudo actualizar la reserva.' }); }
+});
+rutasEmpleados.get('/inventario', async (solicitud, respuesta) => {
+  try {
+    const resultado = await consultarDatos('productos?select=id,nombre,stock_total,stock_disponible,estado&order=nombre', solicitud.tokenSupabase);
+    return respuesta.status(resultado.estado).json({ datos: resultado.datos });
+  } catch { return respuesta.status(503).json({ error: 'No se pudo cargar el inventario.' }); }
+});

@@ -2,10 +2,15 @@
   "name": "rentaeasy",
   "private": true,
   "version": "0.1.0",
-  "workspaces": ["frontend", "backend"],
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
     "desarrollo": "npm run desarrollo --workspace frontend",
     "construir": "npm run construir --workspace frontend",
-    "servidor": "npm run desarrollo --workspace backend"
+    "servidor": "npm run desarrollo --workspace backend",
+    "test": "tsx --test tests/*.test.ts",
+    "verificar": "npm test && npm run construir && npm run construir --workspace backend"
   }
 }

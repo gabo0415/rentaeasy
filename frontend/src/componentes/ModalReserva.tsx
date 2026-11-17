@@ -1,8 +1,10 @@
+import { calcularPrecioReserva } from '../utilidades/precioReserva';
 ﻿import { AlertCircle, CheckCircle2, Loader2, MapPin, Truck, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { servicioProductos } from '../servicios/servicioProductos';
 import { ModalidadAlquiler, ModalidadEntrega, Producto } from '../tipos';
 import { formatearEuros, obtenerDias } from '../utilidades/formato';
-import { disponibilidadConocida, productoDisponible, textoDisponibilidad } from '../utilidades/disponibilidad';
+import { textoDisponibilidad } from '../utilidades/disponibilidad';
 
 export interface DatosReservaConfirmada {
   producto: Producto;
@@ -49,17 +51,13 @@ export function ModalReserva({
   const [confirmacion, setConfirmacion] = useState<ResultadoReserva | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [errorReserva, setErrorReserva] = useState('');
+  const [disponibilidadPeriodo, setDisponibilidadPeriodo] = useState<{ clave: string; unidades: number } | null>(null);
+  const [errorDisponibilidad, setErrorDisponibilidad] = useState('');
 
-  const precio = producto
-    ? {
-        'fin de semana': producto.precioFinDeSemana,
-        mensual: producto.precioMensual,
-        'varios meses': producto.precioVariosMeses,
-      }[modalidad]
-    : 0;
-  const gastosEntrega = entrega === 'domicilio' ? 4.99 : 0;
-  const total = precio + gastosEntrega;
-  const hayStock = Boolean(producto && productoDisponible(producto));
+  const precio = producto ? calcularPrecioReserva(producto, obtenerDias(inicio, fin), modalidad) : 0;
+  const total = precio;
+  const clavePeriodo = `${producto?.idBaseDatos}-${inicio}-${fin}`;
+  const hayStock = disponibilidadPeriodo?.clave === clavePeriodo && disponibilidadPeriodo.unidades > 0;
   const hoy = fechaLocal(new Date());
 
   const errorFechas = useMemo(() => {
@@ -71,9 +69,22 @@ export function ModalReserva({
     return '';
   }, [inicio, fin, modalidad]);
 
+  useEffect(() => {
+    let vigente = true;
+    setErrorDisponibilidad('');
+    setDisponibilidadPeriodo(null);
+    if (!producto?.idBaseDatos || !inicio || !fin || inicio < hoy || errorFechas) return;
+    const temporizador = window.setTimeout(() => {
+      void servicioProductos.obtenerDisponibilidad(producto.idBaseDatos!, inicio, fin)
+        .then(unidades => { if (vigente) setDisponibilidadPeriodo({ clave: clavePeriodo, unidades }); })
+        .catch(() => { if (vigente) setErrorDisponibilidad('No se pudo comprobar la disponibilidad. Cambia las fechas para reintentar.'); });
+    }, 250);
+    return () => { vigente = false; window.clearTimeout(temporizador); };
+  }, [producto?.idBaseDatos, inicio, fin, hoy, errorFechas, clavePeriodo]);
+
   const formularioValido = Boolean(
     hayStock &&
-      inicio &&
+      inicio && inicio >= hoy &&
       fin &&
       !errorFechas &&
       (entrega === 'tienda' || direccion.trim().length > 8),
@@ -183,18 +194,11 @@ export function ModalReserva({
               <div>
                 <p className="text-xs text-slate-400">Producto seleccionado</p>
                 <p className="mt-1 text-sm font-extrabold text-tinta">{producto.nombre}</p>
-                <p className={`mt-1 text-xs font-semibold ${hayStock ? 'text-emerald-600' : 'text-red-600'}`}>{textoDisponibilidad(producto)}</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Hoy: {textoDisponibilidad(producto)}</p>
               </div>
             </div>
 
-            {!hayStock && (
-              <p className="mt-3 flex items-start gap-2 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-700">
-                <AlertCircle size={15} className="mt-0.5 shrink-0" />
-                {disponibilidadConocida(producto)
-                  ? 'Este producto no tiene unidades disponibles ahora mismo.'
-                  : 'Comprobando la disponibilidad real en el catálogo...'}
-              </p>
-            )}
+            <p className="mt-3 text-xs text-slate-500">Selecciona las fechas para comprobar la disponibilidad de tu periodo.</p>
 
             <div className="mt-7">
               <label className="text-sm font-extrabold text-tinta">1. Selecciona el periodo</label>
@@ -272,7 +276,7 @@ export function ModalReserva({
                   <span>
                     <strong className="block text-sm text-tinta">Entrega a domicilio</strong>
                     <small className="text-xs text-slate-500">
-                      {formatearEuros(gastosEntrega)} · En 24/48 h
+                      Entrega coordinada con el equipo
                     </small>
                   </span>
                 </button>
@@ -321,7 +325,7 @@ export function ModalReserva({
               <div className="flex justify-between text-slate-500">
                 <span>Entrega</span>
                 <span className="font-bold text-tinta">
-                  {gastosEntrega ? formatearEuros(gastosEntrega) : 'Gratis'}
+                  {entrega === 'tienda' ? 'Recogida en tienda' : 'A coordinar; no incluido'}
                 </span>
               </div>
               <div className="flex justify-between text-slate-500">
@@ -346,6 +350,8 @@ export function ModalReserva({
               </p>
             )}
 
+            {inicio && fin && !errorFechas && inicio >= hoy && <p role="status" className="mt-4 text-sm text-slate-600">{errorDisponibilidad || (disponibilidadPeriodo?.clave === clavePeriodo ? hayStock ? 'Disponible para las fechas seleccionadas.' : 'Sin disponibilidad para estas fechas. Prueba otro periodo.' : 'Comprobando disponibilidad para estas fechas…')}</p>}
+
             <button
               disabled={!formularioValido || enviando}
               onClick={enviarSolicitud}
@@ -358,7 +364,7 @@ export function ModalReserva({
               ) : hayStock ? (
                 'Solicitar reserva'
               ) : (
-                'No disponible'
+                'Selecciona fechas disponibles'
               )}
             </button>
           </aside>

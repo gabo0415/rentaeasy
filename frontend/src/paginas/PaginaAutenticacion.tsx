@@ -344,7 +344,7 @@ export function PaginaAutenticacion({
                       className="mt-1 h-4 w-4 accent-electrico"
                       required
                     />{' '}
-                    Acepto los términos y condiciones de alquiler y la política de privacidad.
+                    He leído la <a href="/informacion/condiciones" target="_blank" rel="noopener noreferrer" className="underline">información del alquiler</a> y la <a href="/informacion/privacidad" target="_blank" rel="noopener noreferrer" className="underline">información sobre mis datos</a>.
                   </label>
                 </>
               )}

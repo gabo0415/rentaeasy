@@ -1,8 +1,9 @@
-import { ArrowUpRight, Heart, PackageCheck, ShoppingBag } from 'lucide-react';
+import { ArrowUpRight, PackageCheck, ShoppingBag } from 'lucide-react';
 import { Producto } from '../tipos';
 import {
   disponibilidadConocida,
   productoDisponible,
+  productoAdmiteReservas,
   textoDisponibilidad,
 } from '../utilidades/disponibilidad';
 import { formatearEuros } from '../utilidades/formato';
@@ -25,7 +26,7 @@ export function TarjetaProducto({ producto, alVer, alAlquilar }: PropiedadesTarj
           <div className="flex flex-wrap gap-2">
             {producto.etiquetas.slice(0, 1).map((etiqueta) => <span key={etiqueta} className="rounded-full bg-white/90 px-3 py-1.5 text-[11px] font-bold text-tinta shadow-sm backdrop-blur">{etiqueta}</span>)}
           </div>
-          <button aria-label="Añadir a favoritos" className="grid h-9 w-9 place-items-center rounded-full bg-white/90 text-slate-500 shadow-sm transition hover:text-violeta"><Heart size={16} /></button>
+
         </div>
         <div className={`absolute bottom-4 left-4 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold ${disponible ? 'bg-emerald-50 text-emerald-700' : conocida ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500'}`}><PackageCheck size={13} /> {textoDisponibilidad(producto)}</div>
       </div>
@@ -39,10 +40,10 @@ export function TarjetaProducto({ producto, alVer, alAlquilar }: PropiedadesTarj
         </div>
         <button
           onClick={() => alAlquilar(producto)}
-          disabled={!disponible}
+          disabled={!productoAdmiteReservas(producto)}
           className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-tinta px-4 py-3 text-sm font-bold text-white transition hover:bg-electrico disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
         >
-          <ShoppingBag size={16} /> {disponible ? 'Alquilar ahora' : conocida ? 'No disponible' : 'Comprobando...'}
+          <ShoppingBag size={16} /> {productoAdmiteReservas(producto) ? 'Consultar fechas' : conocida ? 'No disponible' : 'Comprobando...'}
         </button>
       </div>
     </article>

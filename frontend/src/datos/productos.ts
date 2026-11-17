@@ -52,7 +52,7 @@ const crearProducto = (
     'Alquiler disponible en Rentaeasy. Las características concretas, tarifas y disponibilidad se confirmarán antes de formalizar la reserva.',
   imagen: IMAGENES[id],
   etiquetas: ['Alquiler'],
-  caracteristicas: ['Reserva sujeta a disponibilidad', 'Tarifas pendientes de confirmación'],
+  caracteristicas: ['Reserva sujeta a disponibilidad', 'Características y modelo a confirmar con el equipo'],
   precioFinDeSemana: 29,
   precioMensual: 59,
   precioVariosMeses: 49,

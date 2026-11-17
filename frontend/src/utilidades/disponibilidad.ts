@@ -8,6 +8,10 @@ export const disponibilidadConocida = (producto: Producto): boolean =>
 export const productoDisponible = (producto: Producto): boolean =>
   disponibilidadConocida(producto) && (producto.disponibles as number) > 0;
 
+/** Permite consultar fechas futuras aunque todas las unidades estén ocupadas hoy. */
+export const productoAdmiteReservas = (producto: Producto): boolean =>
+  Boolean(producto.idBaseDatos && (producto.totalUnidades ?? 0) > 0);
+
 /** Texto corto para tarjetas y resúmenes. */
 export const textoDisponibilidad = (producto: Producto): string => {
   if (!disponibilidadConocida(producto)) return 'Comprobando disponibilidad';

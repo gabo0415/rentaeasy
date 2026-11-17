@@ -2,7 +2,7 @@ import { Bell, ChevronDown, Menu, Search, ShoppingBag, UserRound, X } from 'luci
 import { useState } from 'react';
 import type { Categoria } from '../tipos';
 
-export type RutaNavegacion = 'inicio' | 'catalogo' | 'categorias' | 'como-funciona' | 'contacto';
+export type RutaNavegacion = 'inicio' | 'catalogo' | 'categorias' | 'como-funciona' | 'contacto' | 'preguntas' | 'condiciones' | 'privacidad' | 'cookies';
 
 interface PropiedadesBarraNavegacion {
   vista: string;
@@ -33,9 +33,11 @@ export function BarraNavegacion({ vista, irA, alBuscar, reservas, abrirCuenta, a
           <div className="relative"><button onClick={() => setCategoriasAbiertas(!categoriasAbiertas)} aria-expanded={categoriasAbiertas} className="flex items-center gap-1 text-left text-sm font-semibold text-slate-500 transition hover:text-tinta">Categorías <ChevronDown size={14} className={`transition ${categoriasAbiertas ? 'rotate-180' : ''}`} /></button>{categoriasAbiertas && <div className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-2 shadow-xl lg:absolute lg:left-1/2 lg:top-8 lg:z-50 lg:mt-0 lg:w-64 lg:-translate-x-1/2">{(['Conservación, cocina y pequeño electrodoméstico', 'Lavado y cuidado de la ropa', 'Limpieza avanzada y climatización estacional'] as Categoria[]).map((categoria) => <button key={categoria} onClick={() => navegar('categorias', categoria)} className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold leading-5 text-slate-500 transition hover:bg-blue-50 hover:text-electrico">{categoria}</button>)}</div>}</div>
           <button onClick={() => navegar('como-funciona')} className="text-left text-sm font-semibold text-slate-500 transition hover:text-tinta">Cómo funciona</button>
           <button onClick={() => navegar('contacto')} className="text-left text-sm font-semibold text-slate-500 transition hover:text-tinta">Contacto</button>
+          <button onClick={() => { setMenuAbierto(false); abrirCuenta(); }} className="text-left text-sm font-bold text-electrico lg:hidden">{nombreUsuario ? 'Mi cuenta' : 'Iniciar sesión'}</button>
+          {nombreUsuario && <button onClick={() => { setMenuAbierto(false); alCerrarSesion?.(); }} className="text-left text-sm font-semibold text-slate-500 lg:hidden">Cerrar sesión</button>}
         </nav>
         <div className="flex items-center gap-2">
-          {buscadorAbierto && <input autoFocus onChange={(evento) => alBuscar(evento.target.value)} placeholder="Buscar productos" className="hidden w-44 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-electrico sm:block" />}
+          {buscadorAbierto && <input autoFocus onChange={(evento) => alBuscar(evento.target.value)} placeholder="Buscar productos" aria-label="Buscar productos" className="absolute left-5 right-5 top-[80px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-lg outline-none focus:border-electrico sm:static sm:w-44 sm:shadow-none" />}
           <button onClick={() => setBuscadorAbierto(!buscadorAbierto)} aria-label="Buscar" className="grid h-10 w-10 place-items-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-tinta"><Search size={18} /></button>
           <button onClick={abrirCuenta} aria-label="Mi cuenta" className="hidden h-10 items-center gap-2 rounded-xl px-3 text-sm font-bold text-tinta transition hover:bg-slate-100 sm:flex"><UserRound size={17} /> <span className="hidden xl:block">{nombreUsuario || 'Mi cuenta'}</span></button>
           {nombreUsuario ? <button onClick={alCerrarSesion} className="hidden text-sm font-bold text-slate-500 transition hover:text-electrico md:block">Cerrar sesión</button> : <button onClick={abrirCuenta} className="hidden text-sm font-bold text-electrico transition hover:text-violeta md:block">Iniciar sesión</button>}
@@ -43,7 +45,7 @@ export function BarraNavegacion({ vista, irA, alBuscar, reservas, abrirCuenta, a
           <button onClick={() => setMenuAbierto(!menuAbierto)} aria-label="Abrir menú" className="grid h-10 w-10 place-items-center rounded-xl text-slate-600 lg:hidden">{menuAbierto ? <X size={21} /> : <Menu size={21} />}</button>
         </div>
       </div>
-      <div className="hidden items-center justify-center gap-2 border-t border-slate-100 bg-slate-50 py-2 text-xs font-medium text-slate-500 md:flex"><Bell size={13} className="text-electrico" /> Entrega gratuita en pedidos superiores a 75 € en Madrid</div>
+      <div className="hidden items-center justify-center gap-2 border-t border-slate-100 bg-slate-50 py-2 text-xs font-medium text-slate-500 md:flex"><Bell size={13} className="text-electrico" /> Recogida en tienda o entrega coordinada en Madrid</div>
     </header>
   );
 }

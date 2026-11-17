@@ -1,27 +1,31 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { RutaNavegacion } from './componentes/BarraNavegacion';
 import { AccesoProtegido } from './componentes/AccesoProtegido';
 import { AccesoNoAutenticado } from './componentes/AccesoNoAutenticado';
 import { PantallaCargaSesion } from './componentes/PantallaCargaSesion';
 import { DatosReservaConfirmada, ModalReserva } from './componentes/ModalReserva';
 import { LayoutTienda } from './componentes/LayoutTienda';
-import { productos as productosBase } from './datos/productos';
 import { DetalleProducto } from './paginas/DetalleProducto';
 import { PaginaCatalogo } from './paginas/PaginaCatalogo';
 import { PaginaCuenta } from './paginas/PaginaCuenta';
 import { PaginaInicio } from './paginas/PaginaInicio';
 import { PaginaAutenticacion } from './paginas/PaginaAutenticacion';
 import { PaginaRestablecerContrasena } from './paginas/PaginaRestablecerContrasena';
-import { LayoutEmpleados, SeccionEmpleado } from './paginas/PanelEmpleados';
-import { LayoutAdministracion, SeccionAdministracionNombre } from './paginas/PanelAdministracion';
+import type { SeccionEmpleado } from './paginas/PanelEmpleados';
+import type { SeccionAdministracionNombre } from './paginas/PanelAdministracion';
 import { servicioAutenticacion, Usuario } from './servicios/servicioAutenticacion';
 import { servicioReservas } from './servicios/servicioReservas';
 import { servicioProductos } from './servicios/servicioProductos';
-import { productoDisponible } from './utilidades/disponibilidad';
+import { productoAdmiteReservas } from './utilidades/disponibilidad';
 import { Categoria, ModalidadAlquiler, Producto, Rol } from './tipos';
+import { PaginaInformacion, type TipoInformacion } from './paginas/PaginaInformacion';
+
+const LayoutEmpleados = lazy(() => import('./paginas/PanelEmpleados').then(modulo => ({ default: modulo.LayoutEmpleados })));
+const LayoutAdministracion = lazy(() => import('./paginas/PanelAdministracion').then(modulo => ({ default: modulo.LayoutAdministracion })));
 
 type Vista =
   | 'inicio'
+  | 'informacion'
   | 'catalogo'
   | 'detalle'
   | 'reserva'
@@ -35,7 +39,8 @@ type Vista =
 interface EstadoNavegacion {
   vista: Vista;
   categoria?: Categoria | 'Todas';
-  seccion?: 'como-funciona' | 'contacto';
+  seccion?: 'como-funciona' | 'contacto' | 'preguntas';
+  tipoInformacion?: TipoInformacion;
   productoId?: string;
   modalidad?: ModalidadAlquiler;
   redirigir?: string;
@@ -57,6 +62,10 @@ const leerRuta = (): EstadoNavegacion => {
   const seccion = url.searchParams.get('seccion') as EstadoNavegacion['seccion'];
   const redirigir = url.searchParams.get('redirigir') || undefined;
   const modalidad = normalizarModalidad(url.searchParams.get('modalidad'));
+  if (url.pathname.startsWith('/informacion/')) {
+    const tipo = url.pathname.split('/')[2];
+    if (tipo === 'condiciones' || tipo === 'privacidad' || tipo === 'cookies') return { vista: 'informacion', tipoInformacion: tipo };
+  }
   if (url.pathname === '/catalogo') return { vista: 'catalogo', categoria: categoria || 'Todas' };
   if (url.pathname.startsWith('/producto/'))
     return { vista: 'detalle', productoId: url.pathname.split('/').filter(Boolean)[1] };
@@ -77,6 +86,7 @@ const leerRuta = (): EstadoNavegacion => {
       inventario: 'Inventario',
       mantenimiento: 'Mantenimiento',
       reportes: 'Reportes',
+      consultas: 'Consultas',
       configuracion: 'Configuración',
     };
     return { vista: 'administracion', seccionAdministracion: secciones[url.pathname.split('/')[2]] || 'Resumen' };
@@ -86,6 +96,7 @@ const leerRuta = (): EstadoNavegacion => {
       pedidos: 'Pedidos',
       inventario: 'Inventario',
       reportes: 'Reportes',
+      consultas: 'Consultas',
     };
     return { vista: 'empleados', seccionEmpleado: secciones[url.pathname.split('/')[2]] || 'Resumen' };
   }
@@ -93,7 +104,7 @@ const leerRuta = (): EstadoNavegacion => {
   if (url.pathname === '/iniciar-sesion') return { vista: 'inicio-sesion', redirigir };
   return {
     vista: 'inicio',
-    seccion: seccion === 'como-funciona' || seccion === 'contacto' ? seccion : undefined,
+    seccion: seccion === 'como-funciona' || seccion === 'contacto' || seccion === 'preguntas' ? seccion : undefined,
   };
 };
 
@@ -108,16 +119,28 @@ export default function App() {
   const [productoElegido, setProductoElegido] = useState<Producto | null>(null);
   const [reservas, setReservas] = useState(0);
   const [busqueda, setBusqueda] = useState('');
-  const [productos, setProductos] = useState<Producto[]>(productosBase);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [cargandoCatalogo, setCargandoCatalogo] = useState(true);
+  const [errorCatalogo, setErrorCatalogo] = useState('');
   const idCatalogo = useRef(0);
 
   const recargarCatalogo = useCallback(async () => {
     const id = ++idCatalogo.current;
     try {
       const catalogoReal = await servicioProductos.obtenerTodos();
-      if (id === idCatalogo.current) setProductos(catalogoReal);
+      if (id === idCatalogo.current) {
+        setProductos(catalogoReal);
+        setErrorCatalogo('');
+      }
     } catch (error) {
       console.error('[catálogo] No se pudo cargar la disponibilidad real.', error);
+      if (id === idCatalogo.current) {
+        setProductos([]);
+        setProductoElegido(null);
+        setErrorCatalogo('No se pudo actualizar el catálogo. Comprueba tu conexión e inténtalo de nuevo.');
+      }
+    } finally {
+      if (id === idCatalogo.current) setCargandoCatalogo(false);
     }
   }, []);
 
@@ -133,7 +156,7 @@ export default function App() {
   useEffect(() => {
     if (!productoElegido) return;
     const actualizado = productos.find((producto) => producto.id === productoElegido.id);
-    if (actualizado && actualizado !== productoElegido) setProductoElegido(actualizado);
+    if (actualizado !== productoElegido) setProductoElegido(actualizado ?? null);
   }, [productos, productoElegido]);
 
   // Sin polling: se actualiza al volver a la pestaña o a la ventana.
@@ -242,6 +265,8 @@ export default function App() {
     }
     if (ruta === 'como-funciona') cambiarRuta('/?seccion=como-funciona');
     if (ruta === 'contacto') cambiarRuta('/?seccion=contacto');
+    if (ruta === 'preguntas') cambiarRuta('/?seccion=preguntas');
+    if (ruta === 'condiciones' || ruta === 'privacidad' || ruta === 'cookies') cambiarRuta(`/informacion/${ruta}`);
   };
   const navegarEmpleados = (seccion: SeccionEmpleado) =>
     cambiarRuta(seccion === 'Resumen' ? '/empleados' : `/empleados/${seccion.toLowerCase()}`);
@@ -263,7 +288,7 @@ export default function App() {
   };
   const continuarReserva = (producto: Producto, modalidad: ModalidadAlquiler = 'fin de semana') => {
     setProductoElegido(producto);
-    if (!productoDisponible(producto)) {
+    if (!productoAdmiteReservas(producto)) {
       cambiarRuta(`/producto/${producto.id}`);
       return;
     }
@@ -320,7 +345,7 @@ export default function App() {
   const productoDeRuta = navegacion.productoId
     ? productos.find((producto) => producto.id === navegacion.productoId) || null
     : null;
-  const productoActual = productoDeRuta || productoElegido;
+  const productoActual = navegacion.productoId ? productoDeRuta : productoElegido;
 
   // Nunca se pinta contenido privado mientras se comprueba la sesión.
   if (
@@ -350,6 +375,7 @@ export default function App() {
 
   const contenidoTienda = (
     <>
+      {estadoVista === 'informacion' && navegacion.tipoInformacion && <PaginaInformacion tipo={navegacion.tipoInformacion} />}
       {estadoVista === 'inicio' && (
         <PaginaInicio
           productos={productos}
@@ -385,7 +411,7 @@ export default function App() {
           alTerminar={() => cambiarRuta('/cuenta')}
         />
       )}
-      {estadoVista === 'reserva' && usuarioActual && !productoDeRuta && (
+      {['detalle', 'reserva'].includes(estadoVista) && !cargandoCatalogo && !errorCatalogo && !productoDeRuta && (
         <main className="min-h-[calc(100vh-76px)] bg-neblina px-5 py-16">
           <div className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-suave">
             <h1 className="text-2xl font-black text-tinta">No hemos encontrado ese producto</h1>
@@ -475,7 +501,7 @@ export default function App() {
     );
 
   return esPanel ? (
-    <>{contenidoPanel}</>
+    <Suspense fallback={<PantallaCargaSesion />}>{contenidoPanel}</Suspense>
   ) : (
     <LayoutTienda
       vista={estadoVista}
@@ -495,6 +521,10 @@ export default function App() {
         estadoVista !== 'restablecer-contrasena'
       }
     >
+      {['inicio', 'catalogo', 'detalle', 'reserva'].includes(estadoVista) && (
+        cargandoCatalogo ? <p role="status" className="bg-blue-50 p-4 text-center">Cargando catálogo y tarifas…</p> :
+        errorCatalogo ? <div role="alert" className="bg-red-50 p-4 text-center text-red-700">{errorCatalogo} <button className="ml-2 font-bold underline" onClick={() => void recargarCatalogo()}>Reintentar</button></div> : null
+      )}
       {contenidoTienda}
     </LayoutTienda>
   );

@@ -9,6 +9,8 @@ export type Rol = 'cliente' | 'empleado' | 'administrador';
 export type EstadoReserva = 'Pendiente' | 'Confirmada' | 'En preparación' | 'En alquiler' | 'Finalizada' | 'Cancelada';
 
 export interface Producto {
+  idBaseDatos?: string;
+  precioDiaAdicional?: number;
   id: string;
   nombre: string;
   categoria: Categoria;

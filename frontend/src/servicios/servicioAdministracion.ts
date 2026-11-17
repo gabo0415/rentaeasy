@@ -174,7 +174,7 @@ const aNumero = (valor: number | string | null) =>
 const traducirError = (error: ErrorSupabase | null): string => {
   const texto = `${error?.code ?? ''} ${error?.message ?? ''} ${error?.details ?? ''}`.toLowerCase();
   if (texto.includes('permission denied') || texto.includes('row-level security')) {
-    return 'Tu cuenta no tiene permisos para consultar estos datos. Inicia sesión con una cuenta de administrador.';
+    return 'Tu cuenta no tiene permisos para consultar estos datos. Inicia sesión con una cuenta del equipo.';
   }
   if (texto.includes('jwt') || texto.includes('token')) {
     return 'La sesión ha caducado. Vuelve a iniciar sesión.';
@@ -386,20 +386,29 @@ export const servicioAdministracion = {
    * `validar_estado_reserva` sigue siendo la autoridad: rechaza transiciones no
    * permitidas y valida stock al confirmar. No se modifica ninguna política.
    */
-  actualizarEstadoReserva: async (id: string, estado: EstadoReserva): Promise<void> => {
-    const { data, error } = await supabase
+  actualizarEstadoReserva: async (id: string, estado: EstadoReserva, estadoAnterior?: EstadoReserva): Promise<void> => {
+    let consulta = supabase
       .from('reservas')
       .update({ estado: ESTADO_A_DB[estado] })
-      .eq('id', id)
+      .eq('id', id);
+    if (estadoAnterior) consulta = consulta.eq('estado', ESTADO_A_DB[estadoAnterior]);
+    const { data, error } = await consulta
       .select('id')
       .maybeSingle();
 
     if (error) throw new Error(traducirError(error));
     if (!data) {
       throw new Error(
-        'No se pudo actualizar la reserva. Comprueba que sigues teniendo permisos de administrador.',
+        'La reserva cambió o ya no tienes permisos. Actualiza el panel antes de reintentarlo.',
       );
     }
+  },
+
+  actualizarEstadoProducto: async (id: string, estado: EstadoProducto, anterior: EstadoProducto): Promise<void> => {
+    const { data, error } = await supabase.from('productos').update({ estado })
+      .eq('id', id).eq('estado', anterior).select('id').maybeSingle();
+    if (error) throw new Error(traducirError(error));
+    if (!data) throw new Error('El producto cambió o ya no tienes permisos. Actualiza el panel.');
   },
 
   /**

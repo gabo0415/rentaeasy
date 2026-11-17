@@ -1,41 +1,67 @@
 # Rentaeasy
 
-Plataforma de alquiler flexible de tecnología y pequeños electrodomésticos premium.
+Aplicación de solicitudes de alquiler con catálogo, cuenta de cliente y paneles de administración y operaciones.
 
-## Estructura
+## Funcionalidad
 
-- `frontend`: aplicación React, TypeScript, Vite y Tailwind CSS.
-- `backend`: API Express preparada para conectar con PostgreSQL mediante Supabase.
-- Los productos actuales se sirven desde `frontend/src/datos` como demostración. La capa `servicios` permite sustituir esta fuente por la API sin rehacer la interfaz.
-- El catálogo provisional contiene 3 categorías y 17 productos. Precios, stock y características concretas están pendientes de confirmación y aparecen marcados como provisionales. Las imágenes actuales son packshots vectoriales temporales; no son fotografías oficiales del fabricante.
+- Catálogo de 17 productos en tres categorías. Imágenes y presentación en el frontend; precios, estado y existencias en Supabase.
+- Registro, confirmación por correo, inicio/cierre de sesión, recuperación de contraseña y edición del perfil.
+- Reservas persistidas mediante `crear_reserva`: PostgreSQL calcula precios, valida fechas y protege la disponibilidad.
+- Consulta de disponibilidad para las fechas seleccionadas, incluso si el producto está ocupado hoy.
+- Administración y empleados comparten las mismas reservas. Flujo: pendiente → confirmada → en preparación → en alquiler → finalizada, con cancelación antes de la entrega.
+- Inventario por producto: consulta de existencias y cambios de estado activo/inactivo/mantenimiento. No se simulan unidades físicas individuales.
+- Contacto persistido y bandeja de consultas para el equipo en `/administracion/consultas` y `/empleados/consultas`.
+- Información del alquiler, datos y sesión accesible desde el pie y el registro.
 
-## Requisitos
+## Desarrollo
 
-- Node.js 20 o superior.
-- npm 10 o superior.
-
-## Desarrollo local
+Requiere Node.js 22 o superior y npm 10 o superior.
 
 ```bash
-npm install
+npm ci
+```
+
+Copia `.env.example` a `.env` en la raíz y configura únicamente la URL y la clave **pública** de Supabase. Después:
+
+```bash
 npm run desarrollo
 ```
 
-La aplicación estará disponible en `http://localhost:5173`.
+El frontend usa React, TypeScript, Vite y Tailwind. Vite lee el entorno de la raíz del monorepo.
 
-Para iniciar la API de demostración en otra terminal:
+La API Express es opcional para el flujo de tienda, que usa el cliente público y RLS de Supabase. Para ejecutarla, configura `backend/.env` siguiendo su ejemplo:
 
 ```bash
 npm run servidor
 ```
 
-## Variables de entorno
+La API consulta datos persistidos y reenvía el JWT del solicitante para mantener RLS. La creación de cuentas internas requiere una clave de servicio exclusivamente en el servidor. Las antiguas rutas de registro/inicio de sesión de demostración devuelven HTTP 410; utiliza Supabase Auth.
 
-Copia los archivos `.env.example` de `frontend` y `backend` como `.env` cuando se configure la API y Supabase. No se incluyen credenciales en el repositorio.
+## Migraciones
 
-## Próximas integraciones
+Los archivos SQL de `supabase/migrations` contienen el esquema, catálogo y contacto. La migración `20261117155251_contacto_operativo.sql` ya se aplicó al proyecto conectado. No debe volver a aplicarse manualmente allí. En un proyecto nuevo, revisa y aplica las migraciones por orden; la migración del catálogo contiene un reemplazo deliberado del catálogo anterior.
 
-La validación definitiva de disponibilidad, precios y reservas debe realizarse en el backend. La interfaz de catálogo y reservas sigue usando datos de demostración identificados como tales.
+Las consultas públicas de contacto tienen permiso de inserción solo para nombre, correo, asunto y mensaje. Su lectura y actualización están limitadas al equipo. El navegador nunca utiliza claves de servicio.
+
+## Verificación
+
+```bash
+npm run verificar
+```
+
+Ejecuta las pruebas de API y reglas de precio, compila frontend y backend. GitHub Actions repite esta comprobación en pushes y pull requests sin credenciales reales.
+
+`tests/integracion.sql` comprueba la base de datos con identidades sintéticas dentro de una transacción revertida: privacidad, permisos, stock, confirmación, preparación, entrega, devolución y cancelación. Debe ejecutarse como propietario sobre un proyecto de prueba que tenga una categoría y un administrador; no es parte de la compilación ni del CI público.
+
+Evidencias y alcance de las pruebas: [docs/VERIFICACION.md](docs/VERIFICACION.md).
+
+## Publicación y configuración comercial
+
+La app es un sistema de **solicitudes**, sin cobros online. El equipo coordina entrega, posibles fianzas, pagos y condiciones definitivas. Los importes confirmados del panel no representan pagos cobrados.
+
+Antes de operar comercialmente, el responsable debe validar tarifas, modelos y características, datos de contacto, condiciones comerciales y textos de privacidad. Las páginas informativas describen el funcionamiento implementado; no sustituyen documentación contractual validada por el negocio. Las tarifas iniciales de la base de datos proceden del catálogo provisional.
+
+Para Vercel: raíz de proyecto `frontend`, construcción `npm run construir` y salida `dist`. Configura `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` en el entorno de construcción. `frontend/vercel.json` resuelve las rutas internas de la SPA. El backend se despliega por separado cuando se necesite la API administrativa. Configura también las URL de confirmación y recuperación en Supabase Auth.
 
 ## Autenticación con Supabase
 

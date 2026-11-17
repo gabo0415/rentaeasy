@@ -1,8 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { requiereRol } from '../middleware/autenticacion.js';
 import { requiereAdministradorSupabase } from '../middleware/autenticacionSupabase.js';
-import { servicioAutenticacion } from '../servicios/servicioAutenticacion.js';
 import { crearCuentaInterna, asignarRolPerfil } from '../servicios/supabaseAdmin.js';
 
 const esquemaCuentaInterna = z.object({
@@ -80,31 +78,4 @@ rutasAdministracion.patch('/cuentas-internas/:id', requiereAdministradorSupabase
   }
 });
 
-// Rutas de demostración existentes (token en memoria).
-rutasAdministracion.use(requiereRol('administrador'));
-rutasAdministracion.get('/salud', (_solicitud, respuesta) =>
-  respuesta.json({ protegido: true, mensaje: 'Ruta exclusiva de administración.' }),
-);
-rutasAdministracion.post('/usuarios-internos', (solicitud, respuesta) => {
-  const resultado = z
-    .object({
-      nombre: z.string().min(2),
-      apellidos: z.string().min(2),
-      correo: z.string().email(),
-      telefono: z.string().min(6),
-      contrasena: z.string().min(8),
-      rol: z.enum(['empleado', 'administrador']),
-    })
-    .safeParse(solicitud.body);
-  if (!resultado.success)
-    return respuesta.status(400).json({ error: 'Los datos del usuario interno no son válidos.' });
-  try {
-    return respuesta
-      .status(201)
-      .json({ usuario: servicioAutenticacion.crearUsuarioInterno(resultado.data) });
-  } catch (error) {
-    return respuesta
-      .status(409)
-      .json({ error: error instanceof Error ? error.message : 'No se pudo crear el usuario interno.' });
-  }
-});
+rutasAdministracion.get('/salud', requiereAdministradorSupabase, (_solicitud, respuesta) => respuesta.json({ protegido: true }));

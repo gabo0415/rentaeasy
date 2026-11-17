@@ -1,4 +1,4 @@
-import type { Rol } from '../middleware/autenticacion.js';
+type Rol = 'cliente' | 'empleado' | 'administrador';
 
 declare global {
   namespace Express {
